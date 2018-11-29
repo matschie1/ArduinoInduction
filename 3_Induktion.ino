@@ -1,12 +1,14 @@
 /*--- Update Funktionen ---*/
 bool updateRelay() {
   if (isInduon == true && isRelayon == false) {         /* Relais einschalten */
+    Serial.println("Turning Relay on");
     digitalWrite(PIN_WHITE, HIGH);      
     return true;
   } 
 
   if (isInduon == false && isRelayon == true) {         /* Relais ausschalten */
     if (millis() > timeTurnedoff + delayAfteroff) {
+      Serial.println("Turning Relay off");
        digitalWrite(PIN_WHITE, LOW);      
        return false;
     } 
@@ -22,12 +24,13 @@ bool updateRelay() {
 
 void updatePower() {
   if (power != newPower) {                              /* Neuer Befehl empfangen */
-    
+
     if (newPower > 100) { newPower = 100; }             /* Nicht > 100 */
     if (newPower < 0)   { newPower = 0;   }             /* Nicht < 0 */
-    
+    Serial.print("Setting Power to ");
+    Serial.println(newPower);
+        
     power = newPower;
-    lcdPrintPower();
     
     timeTurnedoff = 0;
     isInduon = true;        
@@ -58,8 +61,6 @@ void updatePower() {
         powerLow = 0;
       };          
   }
-  lcdPrintPower();
-  lcdPrintPowerLevel();
 }
 
 void updateCommand() {
@@ -70,29 +71,28 @@ void updateCommand() {
     if (isPower == true) {                            /* Aktuell Hohe Stufe */                         
       if (timeNow > powerLast + powerHigh) {          /* Prüfen, ob Zeit für Hohe Stufe vorbei */
         isPower = false;                              /* Wenn ja, Niedrige Stufe. */
-        lcdPrintPowerLevel();
         powerLast = millis();                         /* Zeit festhalten. */
       } else {  
         sendCommand(CMD[CMD_CUR]);                    /* Befel "Hohe Stufe" sennden. */ 
+
       }
     } else {                                          /* Aktuell niedrige Stufe. */
       if (timeNow > powerLast + powerLow) {           /* Prüfen, ob Zeit für niedrige Stufe vorbei */
         isPower = true;                               /* Wenn ja, hohe Stufe. */
-        lcdPrintPowerLevel();
         powerLast = millis();                         /* Zeit festhalten. */
       } else {
-        sendCommand(CMD[(CMD_CUR - 1)]);              /* Befel "Niedrige Stufe" sennden. */     
+        sendCommand(CMD[(CMD_CUR - 1)]);              /* Befel "Niedrige Stufe" sennden. */
       }
     }     
   } else {                                            
      isPower = false;
      powerLast = 0;
      sendCommand(CMD[0]);                             /* Befel "Niedrige Stufe" sennden. */
-     lcdPrintPowerLevel();
   }
 }
 
 
+  
 /*--- Send and Read ---*/
 void sendCommand(int command[33]) {
   digitalWrite(PIN_YELLOW, HIGH);
@@ -163,3 +163,62 @@ unsigned long BtoI(int start, int numofbits){    //binary array to integer conve
  }
  return integer;
 }    
+
+void mqttcallback(char* topic, byte* payload, unsigned int length) {
+  Serial.println("Received MQTT");
+  Serial.print("Topic: ");
+  Serial.println(topic);
+  Serial.print("Payload: ");
+  for (int i = 0; i < length; i++) {
+    Serial.print((char)payload[i]);
+  }
+  Serial.println("");
+  
+  if (strcmp(indutopic,topic) == 0) {
+    StaticJsonBuffer<128> jsonBuffer;
+    JsonObject& json = jsonBuffer.parseObject(payload);
+
+    if (!json.success()) {
+      Serial.println("JSON Parse failed");
+      return;
+    } 
+
+    if (json["state"] == "off") {
+      newPower = 0;
+    } else {
+      newPower = atoi(json["power"]);      
+    }
+    Serial.print("New Power: ");
+    Serial.println(newPower);
+//    updatePower();
+  } else {
+    Serial.print("Topic does not match: ");
+    Serial.print(topic);
+    Serial.print(" != ");
+    Serial.println(indutopic);
+  }
+ 
+}
+void mqttreconnect() {
+  while (!client.connected()) {
+    if (client.connect("ESP8266Client")) {
+      client.subscribe(indutopic);
+    }
+  }
+}  
+
+void handleRequestInduction() {
+  String message;
+    message += F("<li class=\"list-group-item d-flex justify-content-between align-items-center\"> Relais status <span class=\"badge ");
+    if (isRelayon) { message += "badge-success badge-pill\"> ON"; } else { message += "badge-danger badge-pill\"> OFF"; }
+    message += F("</span> </li><li class=\"list-group-item d-flex justify-content-between align-items-center\"> Power requested <span class=\"badge badge-primary badge-pill\">");
+    message += power;
+    message += F("%</span> </li><li class=\"list-group-item d-flex justify-content-between align-items-center\"> Current Power Level <span class=\"badge badge-primary badge-pill\">P");
+    if (isPower) { message+= CMD_CUR; } else { message += max(0,CMD_CUR-1); }
+    message += F("</span> </li><li class=\"list-group-item d-flex justify-content-between align-items-center\">");
+    message += errorMessage;
+    message += F("</li>");  
+  
+    server.send(200,"text/html", message);
+}
+     

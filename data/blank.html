@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" type="text/css">
+  <link rel="stylesheet" href="theme.css" type="text/css">
+</head>
+
+<body onload="setInterval(refresh, 1000)">
+  <div class="py-2">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-12">
+          <h1 class="">Overview</h1>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="py-2">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-12">
+          <ul class="list-group" id="listSensors">
+            <!--<li class="list-group-item justify-content-between align-items-center d-flex"> Fermenter 1 <span class="badge badge-primary">6.32°C</span> <span class="badge badge-light">mqtt_sens1</span> <a href="" class="badge badge-warning">Edit</a> </li>
+            <li class="list-group-item justify-content-between align-items-center d-flex"> Fermenter 2 <span class="badge badge-primary">6.32°C</span> <span class="badge badge-light">mqtt_sens2</span> <a href="" class="badge badge-warning">Edit</a> </li>
+            <li class="list-group-item justify-content-between align-items-center d-flex flex-row-reverse"> <a href="" class="badge badge-warning">Add</a></li>-->
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="py-2">
+      <div class="container">
+        <div class="row">
+          <div class="col-md-12">
+            <div class="card">
+              <div class="card-header"> Induction Cooker</div>
+              <div class="card-body">
+                <ul class="list-group" id="inductionCooker">
+                  <!--<li class="list-group-item d-flex justify-content-between align-items-center"> Relais status <span class="badge badge-primary badge-pill">ON</span> </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center"> Power requestes<span class="badge badge-primary badge-pill">80%</span> </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center"> Current Power level<span class="badge badge-primary badge-pill">P4</span> </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center"> Status <span class="badge badge-primary badge-pill">OK</span> </li>-->
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.2.1.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.js" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.js" crossorigin="anonymous"></script>
+    <script style="" type="text/javascript">
+      function refresh() {
+        $('#listSensors').load('/reqSensors');
+        $('#inductionCooker').load('/reqIndu');
+      }
+    </script>
+    <script> $('#sensor_modal').on('show.bs.modal', function(event) {
+        var button = $(event.relatedTarget) // Button that triggered the modal
+        var sensorid = button.data('value') // Extract info from data-* attributes
+        var sensorname;
+        var sensorscript;
+        $.ajax({
+          url: '/reqSensor?id=' + sensorid + '&req=name',
+          type: 'get',
+          dataType: 'html',
+          async: false,
+          cache: false,
+          success: function(data) {
+            sensorname = data;
+          }
+        });
+        $.ajax({
+          url: '/reqSensor?id=' + sensorid + '&req=script',
+          type: 'get',
+          dataType: 'html',
+          async: false,
+          cache: false,
+          success: function(data) {
+            sensorscript = data;
+          }
+        });
+        var modal = $(this)
+        modal.find('#modal_sensor_name').val(sensorname)
+        modal.find('#modal_sensor_script').val(sensorscript)
+        modal.find('#modal_sensor_id').val(sensorid)
+        modal.attr('sensor_id', sensorid)
+      })
+    </script>
+    <script> $("#modal_sensor_btn_save").click(function() {
+        var modal = $('#sensor_modal')
+        var sensorname = modal.find('#modal_sensor_name').val()
+        var sensorscript = modal.find('#modal_sensor_script').val()
+        var sensorid = modal.attr('sensor_id')
+        $.ajax({
+          url: '/setSensor?id=' + sensorid + '&name=' + sensorname + '&script=' + sensorscript,
+          type: 'POST',
+          dataType: 'html',
+          async: false,
+          cache: false
+        });
+        modal.modal('hide')
+      });
+    </script>
+    <script> $("#modal_sensor_btn_delete").click(function() {
+        var modal = $('#sensor_modal')
+        var sensorid = modal.attr('sensor_id')
+        $.ajax({
+          url: '/delSensor?id=' + sensorid,
+          type: 'POST',
+          dataType: 'html',
+          async: false,
+          cache: false
+        });
+        modal.modal('hide')
+      });
+    </script>
+    <pingendo onclick="window.open('https://pingendo.com/', '_blank')" style="cursor:pointer;position: fixed;bottom: 20px;right:20px;padding:4px;background-color: #00b0eb;border-radius: 8px; width:220px;display:flex;flex-direction:row;align-items:center;justify-content:center;font-size:14px;color:white">Made with Pingendo Free&nbsp;&nbsp;<img src="https://pingendo.com/site-assets/Pingendo_logo_big.png" class="d-block" alt="Pingendo logo" height="16"></pingendo>
+  </div>
+  <div class="modal fade" id="sensor_modal" sensor_id="">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Modify Sensor</h5> <button type="button" class="close" data-dismiss="modal"> <span>×</span> </button>
+        </div>
+        <div class="modal-body">
+          <label> Index / ID: </label>
+          <input type="text" readonly="" class="form-control-plaintext" placeholder="" id="modal_sensor_id">
+          <label>Name </label>
+          <input type="text" class="form-control" placeholder="" id="modal_sensor_name">
+          <label>MQTT Topic</label>
+          <input type="text" class="form-control" placeholder="" id="modal_sensor_script">
+        </div>
+        <div class="modal-footer"> <button type="button" class="btn btn-primary" id="modal_sensor_btn_save">Save changes</button> <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button> <button type="button" class="btn btn-danger" id="modal_sensor_btn_delete">Delete Sensor</button> </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

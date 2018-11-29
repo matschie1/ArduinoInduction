@@ -1,0 +1,7 @@
+{
+"sensors": [
+     {"INDEX":"0","NAME":"Tauchhuelse","SCRIPT":"indutemp"}
+],
+   "host":"192.168.178.236",
+   "port":"5000"
+}

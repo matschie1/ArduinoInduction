@@ -1,10 +1,11 @@
 void loop() {
-  /*--- Befehl von CBPi empfangen ---*/
-  while(Serial.available() > 0) {
-    newPower = Serial.parseInt();
-    timeLastCommand = millis();
-    timeLastReaction = millis();
-  }
+  if (WiFi.status() != WL_CONNECTED) {  wifiManager.autoConnect("HTTPActSens"); }
+
+  if (!client.connected()) { mqttreconnect(); }
+  
+  client.loop();
+  
+  server.handleClient();
 
   watchDog();
 
@@ -17,6 +18,7 @@ void loop() {
   /*--- Befehl senden ---*/
   updateCommand();
 
-  /*--- LCD Timeout ---*/
-  updateLCD();
+  handleSensors();
+
+  publishStatus();
 }

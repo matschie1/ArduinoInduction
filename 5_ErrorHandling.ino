@@ -1,14 +1,14 @@
 void watchDog() {
   /*--- Serielle kommunikation Überwachen ---*/
-  if ((timeLastCommand + timeOutCommand) < millis()) { 
-    isSerialError = true; 
-    if (!skipSerialError){
-      storePower = newPower;
-      if (power != 0) { newPower = 0; }
-    }
-  } else { 
-    isSerialError = false; 
-  }
+//  if ((timeLastCommand + timeOutCommand) < millis()) { 
+//    isSerialError = true; 
+//    if (!skipSerialError){
+//      storePower = newPower;
+//      if (power != 0) { newPower = 0; }
+//    }
+//  } else { 
+//    isSerialError = false; 
+//  }
 
   /*--- Induktionskochfeld Überwachen ---*/
    if ((timeLastReaction + timeOutReaction) < millis()) { 
@@ -55,7 +55,6 @@ boolean updateError() {
     }
     if (errorMessageBuilder != errorMessage) {
       errorMessage = errorMessageBuilder;
-      lcdPrintError();
     }
 
     return returnValue;
@@ -63,7 +62,6 @@ boolean updateError() {
 
 void handleError() {
   if (power != 0) {
-    lcdPrintError(); 
     newPower = 0;
     updatePower();     
     }   
